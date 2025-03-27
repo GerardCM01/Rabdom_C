@@ -12,7 +12,7 @@ current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 RELEASE_TAG = f"v{current_time}"
 RELEASE_NAME = f"Version {current_time}"
 RELEASE_BODY = "Automated release with timestamp."
-FILE_PATH = "path/to/your/compiled-file.zip"  # Update with your actual file path
+FILE_PATH = "E:\Grau superior\Entorns Desemvolupament\Digitalitzacio\Main.exe"  # Update with your actual file path
 
 # GitHub API URL
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases"
