@@ -1,50 +1,61 @@
 import requests
+import json
 import os
-import datetime
+from datetime import datetime
 
-# Configura aquests valors segons el teu repositori
-GITHUB_REPO = "GerardCM01/Random_C"  # Nom correcte del repositori
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # Obté el token de les credencials de Jenkins
-EXECUTABLE_PATH = "a.out"  # Canvia a "Main.exe" si treballes en Windows
+# Configuration
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # Set this as an environment variable
+GITHUB_REPO = "GerardCM01/Rabdom_C"
 
-# Genera el nom de la release i el tag
-now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-TAG_NAME = f"v{now}"
-RELEASE_NAME = f"Release {now}"
+# Generate dynamic release tag and name based on date/time
+current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+RELEASE_TAG = f"v{current_time}"
+RELEASE_NAME = f"Version {current_time}"
+RELEASE_BODY = "Automated release with timestamp."
+FILE_PATH = "path/to/your/compiled-file.zip"  # Update with your actual file path
 
-# 1️. Crear la release a GitHub
-release_url = f"https://api.github.com/repos/{GITHUB_REPO}/releases"
+# GitHub API URL
+GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases"
+
+# Headers
 headers = {
-    "Authorization": f"Bearer {GITHUB_TOKEN}",
+    "Authorization": f"token {GITHUB_TOKEN}",
     "Accept": "application/vnd.github.v3+json"
 }
+
+# Release data
 release_data = {
-    "tag_name": TAG_NAME,
+    "tag_name": RELEASE_TAG,
     "name": RELEASE_NAME,
-    "body": "Release generada automàticament per Jenkins",
+    "body": RELEASE_BODY,
     "draft": False,
     "prerelease": False
 }
 
-response = requests.post(release_url, json=release_data, headers=headers)
+# Create the release
+response = requests.post(GITHUB_API_URL, headers=headers, data=json.dumps(release_data))
 
 if response.status_code == 201:
+    print("Release published successfully!")
     release_id = response.json()["id"]
-    upload_url = response.json()["upload_url"].split("{")[0]  # Agafa la URL per pujar assets
-    print(f"✅ Release creada: {RELEASE_NAME}")
-else:
-    print(f"❌ Error creant la release: {response.text}")
-    exit(1)
+    upload_url = response.json()["upload_url"].split("{?name,label}")[0]
 
-# 2️. Pujar l'executable a la release
-if os.path.exists(EXECUTABLE_PATH):
-    with open(EXECUTABLE_PATH, "rb") as file:
-        headers["Content-Type"] = "application/octet-stream"
-        upload_response = requests.post(f"{upload_url}?name={os.path.basename(EXECUTABLE_PATH)}", headers=headers, data=file)
+    # Upload the compiled file
+    with open(FILE_PATH, "rb") as file:
+        file_name = os.path.basename(FILE_PATH)
+        upload_headers = {
+            "Authorization": f"token {GITHUB_TOKEN}",
+            "Content-Type": "application/octet-stream"
+        }
+        upload_response = requests.post(
+            f"{upload_url}?name={file_name}", headers=upload_headers, data=file
+        )
 
-    if upload_response.status_code == 201:
-        print("✅ Executable pujat correctament a la release!")
-    else:
-        print(f"❌ Error pujant l'executable: {upload_response.text}")
+        if upload_response.status_code == 201:
+            print("File uploaded successfully!")
+        else:
+            print("Failed to upload file.")
+            print(upload_response.json())
 else:
-    print("❌ No s'ha trobat l'executable per pujar!")
+    print("Failed to publish release.")
+    print(response.json())
